@@ -1,6 +1,6 @@
 local_repository(
 	name="GLFW",
-	path="/opt/homebrew/Cellar/glfw/3.3.4"
+	path="/opt/homebrew/Cellar/glfw/3.3.5"
 )
 
 load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")

@@ -8,6 +8,9 @@
 // GL libs
 #include <glad/glad.h>
 #include <glfw3.h>
+#include "third_party/glm/glm/glm.hpp"
+#include "third_party/glm/glm/gtc/matrix_transform.hpp"
+#include "third_party/glm/glm/gtc/type_ptr.hpp"
 
 // standard libs
 #include "math.h"
@@ -153,6 +156,13 @@ std::string get_asset_path(std::string sub_path) {
 
 int main()
 {
+    glm::vec4 vec(1.0f, 0.0f, 0.0f, 1.0f);
+    glm::mat4 trans = glm::mat4(1.0f);
+    trans = glm::translate(trans, glm::vec3(1.0f, 1.0f, 0.0f));
+    vec = trans * vec;
+    std::cout << vec.x << vec.y << vec.z << std::endl;
+
+
     Window window;
     Shader shader = Shader(
         get_asset_path("shaders/vertex.glsl").c_str(),

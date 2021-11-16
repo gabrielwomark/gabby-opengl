@@ -5,7 +5,7 @@ cc_library(
 	deps = [
 		"@GLFW//:GLFW",
 		"//third_party/glad",
-	]
+	],
 )
 
 cc_library(
@@ -15,7 +15,7 @@ cc_library(
 	deps = [
 		"@GLFW//:GLFW",
 		"//third_party/glad",
-	]
+	],
 )
 
 
@@ -24,9 +24,10 @@ cc_binary(
 	srcs=["main.cpp"],
 	deps = [
 		"@GLFW//:GLFW",
+                "//third_party/glm",
 		"//third_party/glad",
                 "//third_party/stb",
 		":Window",
                 ":Shader",
-	]
+	],
 )
