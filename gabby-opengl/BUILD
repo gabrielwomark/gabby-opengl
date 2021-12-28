@@ -47,9 +47,8 @@ cc_library(
 	srcs = ["World.h"],
 	hdrs = ["World.h"],
 	deps = [
-		"@GLFW//:GLFW",
-                "//third_party/glm",
-		"//third_party/glad",
+                ":Block",
+                ":Util",
 	],
 )
 
@@ -97,6 +96,7 @@ cc_library(
 	],
 )
 
+
 cc_library(
 	name = "Block",
 	srcs = ["Block.h"],
@@ -104,8 +104,19 @@ cc_library(
 	deps = [
 		"@GLFW//:GLFW",
 		"//third_party/glad",
-                ":VBO"
+                "//third_party/glm",
+                "//third_party/stb",
+                ":Texture",
+                ":VAO",
+                ":VBO",
 	],
+)
+
+
+cc_library(
+	name = "Util",
+	srcs = ["util.h"],
+	hdrs = ["util.h"],
 )
 
 cc_binary(
@@ -125,5 +136,7 @@ cc_binary(
                 ":BlockAtlas",
                 ":World",
                 ":State",
+                ":Block",
+                ":Util",
 	],
 )

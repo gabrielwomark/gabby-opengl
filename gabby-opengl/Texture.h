@@ -4,22 +4,23 @@
 #include <glfw3.h>
 #include <stb/stb_image.h>
 
+#include <algorithm>
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
 #include <memory>
 #include <string>
-using namespace std;
+#include <vector>
 typedef uint8_t u8;
 
 class Texture {
    public:
     unsigned int handle;
 
-    Texture(string path, GLuint color_channel_type)
+    Texture(std::string path, GLuint color_channel_type)
         : color_channel_type{color_channel_type} {
-        string asset_path = get_asset_path(path);
-        unique_ptr<u8[]> pixels;
+        std::string asset_path = get_asset_path(path);
+        std::vector<uint8_t> pixels;
         size_t width, height;
         load_pixels(asset_path, pixels, &width, &height);
         create_from_pixels(pixels, width, height);
@@ -35,31 +36,35 @@ class Texture {
    private:
     GLuint color_channel_type;
 
-    string get_asset_path(string sub_path) {
-        string ROOT_DIR = "/Users/gabrielwomark/dev/GabbyOpenGL";
+    std::string get_asset_path(std::string sub_path) {
+        std::string ROOT_DIR = "/Users/gabrielwomark/dev/GabbyOpenGL";
         return ROOT_DIR + "/" + sub_path;
     }
 
-    void load_pixels(string path, unique_ptr<u8[]>& pixels_out,
+    void load_pixels(std::string path, std::vector<uint8_t>& pixels_out,
                      size_t* width_out, size_t* height_out) {
-        // load and generate texture
+        // load pixel data
         int w, h, nrChannels;
-        stbi_set_flip_vertically_on_load(true);
+        // TODO: figure out what to do about this
+        // stbi_set_flip_vertically_on_load(true);
         unsigned char* data = stbi_load(path.c_str(), &w, &h, &nrChannels, 0);
 
         if (!data) {
-            cout << get_asset_path(path) << "Failed to load texture" << endl;
+            std::cout << get_asset_path(path) << "Failed to load texture"
+                      << "\n";
             exit(1);
         }
 
-        pixels_out = make_unique<u8[]>(w * h * 4);
-        memcpy(pixels_out.get(), data, w * h * 4);
+        // copy function local pointer to vector owned by texture class for
+        // future use
+        pixels_out.reserve(w * h * 4);
+        std::copy(data, data + w * h * 4, pixels_out.begin());
         *width_out = w;
         *height_out = h;
         stbi_image_free(data);
     }
 
-    void create_from_pixels(unique_ptr<u8[]>& pixels, size_t width,
+    void create_from_pixels(std::vector<u8>& pixels, size_t width,
                             size_t height) {
         // GENERATE AND ADD FIRST TEXTURE TO GL_TEXTURE0
         // takes in the number of textures and takes in an unsinged int * as an
@@ -74,7 +79,8 @@ class Texture {
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0,
-                     color_channel_type, GL_UNSIGNED_BYTE, pixels.get());
+                     color_channel_type, GL_UNSIGNED_BYTE,
+                     (static_cast<void*>(pixels.data())));
         glGenerateMipmap(GL_TEXTURE_2D);
     }
 };

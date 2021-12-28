@@ -57,6 +57,10 @@ class Window {
         glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     }
 
+    void enable_cursor() {
+        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+    }
+
     void set_mouse_callback(GLFWcursorposfun callback) {
         glfwSetCursorPosCallback(window, callback);
     }

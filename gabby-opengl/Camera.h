@@ -4,17 +4,19 @@
 
 #include <glm/glm/glm.hpp>
 #include <glm/glm/gtc/matrix_transform.hpp>
-#include <iostream>
 #include <string>
 
+#include "Shader.h"
 #include "glm/glm/ext/matrix_transform.hpp"
 #include "glm/glm/ext/vector_float3.hpp"
 #include "glm/glm/fwd.hpp"
 #include "glm/glm/geometric.hpp"
-
-const float SPEED = 2.5;
+const float SPEED = 3.0;
 const float SENSITIVITY = 0.1;
 const float ZOOM = 45.0;
+
+const unsigned int SRC_WIDTH = 800;
+const unsigned int SRC_HEIGHT = 600;
 
 enum CameraMovement { FORWARD, BACKWARD, LEFT, RIGHT, UP, DOWN };
 
@@ -51,11 +53,21 @@ class Camera {
         return glm::lookAt(Position, Position + Front, Up);
     }
 
+    void set_view_projection_matrix(Shader& shader) {
+        shader.use();
+
+        glm::mat4 view = GetViewMatrix();
+        glm::mat4 projection = glm::perspective(
+            glm::radians(45.0f), SRC_WIDTH / (float)SRC_HEIGHT, 0.1f, 100.0f);
+        shader.setMat4fv("view", view);
+        shader.setMat4fv("projection", projection);
+    }
+
     void ProcessKeyboardInput(CameraMovement direction, float deltaTime) {
         float velocity = MovementSpeed * deltaTime;
 
-        glm::vec3 front_xz = glm::vec3(Front.x, 0.0f, Front.z);
-        glm::vec3 right_xz = glm::vec3(Right.x, 0.0f, Right.z);
+        glm::vec3 front_xz = glm::normalize(glm::vec3(Front.x, 0.0f, Front.z));
+        glm::vec3 right_xz = glm::normalize(glm::vec3(Right.x, 0.0f, Right.z));
         switch (direction) {
             case FORWARD:
                 Position += front_xz * velocity;
@@ -68,6 +80,12 @@ class Camera {
                 break;
             case LEFT:
                 Position -= right_xz * velocity;
+                break;
+            case UP:
+                Position += Up * velocity;
+                break;
+            case DOWN:
+                Position -= Up * velocity;
                 break;
             default:
                 break;

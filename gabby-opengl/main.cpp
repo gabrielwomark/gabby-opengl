@@ -9,10 +9,13 @@
 #include <cmath>
 #include <fstream>
 #include <iostream>
+#include <memory>
 #include <sstream>
 #include <string>
 #include <vector>
 
+#include "World.h"
+#include "glm/glm/fwd.hpp"
 #include "math.h"
 
 // GL libs
@@ -24,19 +27,18 @@
 #include <stb/stb_image.h>
 
 // My libs
+#include "Block.h"
+#include "BlockAtlas.h"
 #include "Camera.h"
 #include "Shader.h"
 #include "State.h"
 #include "Texture.h"
 #include "Window.h"
+#include "util.h"
 #include "vao.h"
 #include "vbo.h"
 
 struct State state;
-
-// camera globals
-const unsigned int SRC_WIDTH = 800;
-const unsigned int SRC_HEIGHT = 600;
 
 Camera camera(glm::vec3(0.0f, 2.0f, 3.0f));
 float lastX = float(SRC_WIDTH) / 2;
@@ -45,72 +47,27 @@ bool firstMouse;
 
 enum ImageFormat { JPG, PNG };
 
-float vertices[] = {
-    -0.5f, -0.5f, -0.5f, 0.0f, 0.0f, 0.5f,  -0.5f, -0.5f, 1.0f, 0.0f,
-    0.5f,  0.5f,  -0.5f, 1.0f, 1.0f, 0.5f,  0.5f,  -0.5f, 1.0f, 1.0f,
-    -0.5f, 0.5f,  -0.5f, 0.0f, 1.0f, -0.5f, -0.5f, -0.5f, 0.0f, 0.0f,
+float triangle_vertices[]{
+    -0.5f, -0.5f, -0.5f,  // 0
+    -0.5f, -0.5f, 0.5f,   // 1
+    -0.5f, 0.5f,  -0.5f,  // 2
+    -0.5f, 0.5f,  0.5f,   // 3
+    0.5f,  -0.5f, -0.5f,  // 4
+    0.5f,  -0.5f, 0.5f,   // 5
+    0.5f,  0.5f,  -0.5f,  // 6
+    0.5f,  0.5f,  0.5f,   // 7
+};
 
-    -0.5f, -0.5f, 0.5f,  0.0f, 0.0f, 0.5f,  -0.5f, 0.5f,  1.0f, 0.0f,
-    0.5f,  0.5f,  0.5f,  1.0f, 1.0f, 0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
-    -0.5f, 0.5f,  0.5f,  0.0f, 1.0f, -0.5f, -0.5f, 0.5f,  0.0f, 0.0f,
+float texture_vertices[]{};
 
-    -0.5f, 0.5f,  0.5f,  1.0f, 0.0f, -0.5f, 0.5f,  -0.5f, 1.0f, 1.0f,
-    -0.5f, -0.5f, -0.5f, 0.0f, 1.0f, -0.5f, -0.5f, -0.5f, 0.0f, 1.0f,
-    -0.5f, -0.5f, 0.5f,  0.0f, 0.0f, -0.5f, 0.5f,  0.5f,  1.0f, 0.0f,
+float triangle_indices[]{
+    0, 4, 6, 6, 2, 0,  // NORTH
+    1, 5, 7, 7, 3, 1,  // SOUTH
+    3, 2, 0, 0, 1, 3,  // WEST
+    7, 6, 4, 4, 5, 7,  // EAST
+    0, 4, 5, 5, 1, 0,  // BOTTOM
 
-    0.5f,  0.5f,  0.5f,  1.0f, 0.0f, 0.5f,  0.5f,  -0.5f, 1.0f, 1.0f,
-    0.5f,  -0.5f, -0.5f, 0.0f, 1.0f, 0.5f,  -0.5f, -0.5f, 0.0f, 1.0f,
-    0.5f,  -0.5f, 0.5f,  0.0f, 0.0f, 0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-
-    -0.5f, -0.5f, -0.5f, 0.0f, 1.0f, 0.5f,  -0.5f, -0.5f, 1.0f, 1.0f,
-    0.5f,  -0.5f, 0.5f,  1.0f, 0.0f, 0.5f,  -0.5f, 0.5f,  1.0f, 0.0f,
-    -0.5f, -0.5f, 0.5f,  0.0f, 0.0f, -0.5f, -0.5f, -0.5f, 0.0f, 1.0f,
-
-    -0.5f, 0.5f,  -0.5f, 0.0f, 1.0f, 0.5f,  0.5f,  -0.5f, 1.0f, 1.0f,
-    0.5f,  0.5f,  0.5f,  1.0f, 0.0f, 0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-    -0.5f, 0.5f,  0.5f,  0.0f, 0.0f, -0.5f, 0.5f,  -0.5f, 0.0f, 1.0f};
-
-glm::vec3 cubePositions[] = {
-    glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f),
-    glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(1.0f, 0.0f, 1.0f),
-    glm::vec3(2.0f, 0.0f, 2.0f)};
-/* ,   glm::vec3(2.0f, 5.0f, -15.0f),
-             glm::vec3(-1.5f, -2.2f, -2.5f), glm::vec3(-3.8f, -2.0f, -12.3f),
-             glm::vec3(2.4f, -0.4f, -3.5f),  glm::vec3(-1.7f, 3.0f, -7.5f),
-             glm::vec3(1.3f, -2.0f, -2.5f),  glm::vec3(1.5f, 2.0f, -2.5f),
-             glm::vec3(1.5f, 0.2f, -1.5f),   glm::vec3(-1.3f, 1.0f, -1.5f)}; */
-
-void draw_vertices(VAO& vao, Shader shader, std::vector<Texture>& textures) {
-    // bind textures
-    for (int i = 0; i < textures.size(); ++i) {
-        textures[i].bind_texture();
-    }
-    // use shaders before setting uniforms
-    shader.use();
-
-    glm::mat4 view = camera.GetViewMatrix();
-    glm::mat4 projection = glm::perspective(
-        glm::radians(45.0f), SRC_WIDTH / (float)SRC_HEIGHT, 0.1f, 100.0f);
-    shader.setMat4fv("view", view);
-    shader.setMat4fv("projection", projection);
-
-    // Control which texture appears more
-    vao.bind();
-    for (unsigned int i = 0; i < 5; i++) {
-        // matrix transform
-        glm::mat4 model = glm::mat4(1.0f);
-        model = glm::translate(model, cubePositions[i]);
-        shader.setMat4fv("model", model);
-
-        // glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
-    }
-}
-
-std::string get_asset_path(std::string sub_path) {
-    std::string ROOT_DIR = "/Users/gabrielwomark/dev/GabbyOpenGL";
-    return ROOT_DIR + "/" + sub_path;
-}
+};
 
 void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
     if (firstMouse) {
@@ -150,34 +107,27 @@ void process_input(Window& window) {
     if (glfwGetKey(w, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
         camera.ProcessKeyboardInput(DOWN, window.deltaTime);
     }
+    if (glfwGetKey(w, GLFW_KEY_P) == GLFW_PRESS) {
+        window.enable_cursor();
+    }
 }
+
+#define BLOCK_ATLAS_FRAMES = 16
+
+// struct Blockatlas {
+//     Blockatlas() {
+//         texture = std::make_unique<Texture>("images/terrain.png", GL_RGBA);
+//     }
+//
+//     std::unique_ptr<Texture> texture;
+// };
 
 int main() {
     state.window = &window;
     state.window->disable_cursor();
     state.window->set_mouse_callback(mouse_callback);
-    Shader shader = Shader(get_asset_path("shaders/vertex.glsl").c_str(),
-                           get_asset_path("shaders/frag_shader.glsl").c_str());
 
-    VAO vao;
-    VBO vbo(GL_ARRAY_BUFFER, false);
-    vbo.buffer(vertices, 180 * sizeof(float));
-
-    // position attributes
-    vao.attr("position", vbo, 0, 3, GL_FLOAT, 5 * sizeof(float), 0);
-    // texture attributes
-    vao.attr("texture", vbo, 1, 2, GL_FLOAT, 5 * sizeof(float),
-             3 * sizeof(float));
-
-    // TEXTURE STUFF
-    Texture texture1 = Texture("images/container.jpg", GL_RGB);
-    Texture texture2 = Texture("images/smiley.png", GL_RGBA);
-
-    std::vector<Texture> textures = {texture1, texture2};
-    shader.use();
-    shader.setInt("texture1", 0);
-    shader.setInt("texture2", 1);
-    // END TEXTURE STUFF
+    World world;
 
     // enable depth testing so things render properly
     glEnable(GL_DEPTH_TEST);
@@ -192,9 +142,10 @@ int main() {
         glClearColor(0.49f, 0.75f, 0.92f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        draw_vertices(vao, shader, textures);
-
-        // Swap front and back buffers
+        camera.set_view_projection_matrix(world.chunk_shader);
+        world.render();
+        world.update();
+        //    Swap front and back buffers
         glfwSwapBuffers(state.window->get_window());
 
         // Poll for and process events
